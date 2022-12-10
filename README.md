@@ -8,4 +8,8 @@ Repositório para os trabalhos avaliativos da matéria de Probabilidade e Estat�
 
 📝 [Veja aqui o anunciado da Avaliação 2](https://fnaufel.github.io/site/static/Probest/2022.2/lista2.html)
 
+##
+
+ 📌 Para a resolução dos exercícios eu utilizei o site [Posit Cloud](https://posit.cloud).
+
 
