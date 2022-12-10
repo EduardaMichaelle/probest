@@ -1,0 +1,355 @@
+---
+title: "Preços de combustível no Brasil"
+author: "👩🏽‍💻 Eduarda Michaelle"
+github: 'https://github.com/EduardaMichaelle'
+date: '(data: `r format(Sys.Date(), "%d/%m/%Y")`)'
+lang: 'pt-br'
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+---
+
+```{r pacotes}
+install.packages("tidyverse")
+install.packages("summarytools")
+install.packages("lubridate")
+```
+
+```{r bibliotecas}
+library(tidyverse)
+library(lubridate)
+library(summarytools)
+```
+
+# Leitura e limpeza de dados
+
+```{r leitura-arq}
+combustivel_info <- read_tsv(
+  '2004-2021.tsv'
+  )
+```
+
+```{r glimpse}
+glimpse(combustivel_info)
+```
+* Verificando se há valores faltantes `(NA)`:
+
+```{r verifica-na}
+# Usando a função any para testar se há pelo menos 1 valor ausente em uma coluna dos dados.
+any(is.na(combustivel_info))
+```
+
+# Análise Exploratória
+
+* Verificando a quantidade de combustíveis diferentes analisados:
+
+```{r comb-analisados}
+table(combustivel_info$PRODUTO)
+```
+* Qual o menor preço que cada combustível teve entre todos os anos analisados? E o maior? 
+
+```{r min-preço-comb}
+combustivel_info %>% 
+  group_by(PRODUTO) %>% 
+  summarize(`MENOR PREÇO` = min(`PREÇO MÉDIO REVENDA`)) %>% 
+  arrange(`MENOR PREÇO`)
+```
+
+```{r max-preço-comb}
+combustivel_info %>% 
+  group_by(PRODUTO) %>% 
+  summarize(`MAIOR PREÇO` = max(`PREÇO MÉDIO REVENDA`)) %>% 
+  arrange(`MAIOR PREÇO`)
+```
+
+* Total de postos pesquisados por todo Brasil (desde 2004):
+
+```{r total-postos}
+postos <- combustivel_info['NÚMERO DE POSTOS PESQUISADOS']
+sum(postos)
+```
+
+* Média do preço dos combustíveis no Brasil em 2004:
+
+```{r media-2004}
+# Inserindo a coluna DATA INICIAL em datas
+DATAS <- combustivel_info['DATA INICIAL']
+# Inserindo a coluna PREÇO MÉDIO REVENDA em PREÇOS
+PREÇOS <- combustivel_info['PREÇO MÉDIO REVENDA']
+# Inserindo a coluna PRODUTO em COMBUSTÍVEL
+COMBUSTÍVEL <- combustivel_info['PRODUTO']
+# Inserindo a coluna ESTADO em EST 
+EST <- combustivel_info['ESTADO']
+
+# Criando um for para armazenar no vetor ANOS, apenas os anos das datas da tabela DATAS
+for (elem in DATAS)
+{
+  ANOS <- year(elem)
+}
+
+# Criando uma tabela com DATAS, PREÇOS e ANOS
+tabela <- tibble(DATAS, EST, PREÇOS, COMBUSTÍVEL, ANOS)
+
+# Filtrando as linhas com os anos = 2004 e criando outra tabela apenas com os preços de 2004 
+anos_2004 <- tabela %>% filter(ANOS==2004) %>%
+  arrange(`DATA INICIAL`)
+
+# Imprimindo a tabela com os preços médios de 2004
+anos_2004 
+
+# Imprimindo a média
+anos_2004 %>%
+  pull("PREÇO MÉDIO REVENDA") %>%
+  mean()
+```
+
+* Média do preço do combustível no Brasil em 2021:
+
+```{r media-2021}
+DATAS <- combustivel_info['DATA INICIAL']
+PREÇOS <- combustivel_info['PREÇO MÉDIO REVENDA']
+COMBUSTÍVEL <- combustivel_info['PRODUTO']
+EST <- combustivel_info['ESTADO']
+
+for (elem in DATAS)
+{
+  ANOS <- year(elem)
+}
+
+tabela <- tibble(DATAS, EST, PREÇOS, COMBUSTÍVEL, ANOS)
+anos_2021 <- tabela %>% filter(ANOS==2021)
+
+anos_2021
+
+anos_2021 %>%
+  pull("PREÇO MÉDIO REVENDA") %>%
+  mean()
+```
+
+➞ Podemos perceber que em 17 anos o preço médio dos combustíveis dobrou. 
+
+* As informações apenas do estado do Rio de Janeiro (2004-2021):
+
+```{r rio-info}
+combustivel_info %>% 
+  filter(ESTADO == 'RIO DE JANEIRO')
+```
+
+* O estado que teve o menor preço médio de combustível (2004-2021)?
+
+```{r est-menor-preço-medio}
+# Criando uma tabela ordenada pelo preço médio (do menor para o maior)
+comb_EST <- combustivel_info %>% arrange(`PREÇO MÉDIO REVENDA`)
+
+# Imprimindo apenas a primeira linha da tabela
+comb_EST %>%
+  slice_head()
+```
+
+* O estado que teve o maior preço médio de combustível (2004-2021)?
+
+```{r est-maior-preço-medio}
+comb_EST <- combustivel_info %>% arrange(`PREÇO MÉDIO REVENDA`)
+
+# Imprimindo apenas a última linha da tabela
+comb_EST %>%
+  slice_tail()
+```
+
+➞ Observamos que o preço médio mais barato foi de 0.766 em maio de 2004, e o mais caro foi de 107.5 em março de 2021. Será que os preços aumentaram gradativamente a cada ano desde 2004? Ou será que houveram anos melhores que outros? 
+
+* Sumário 
+
+```{r sumário}
+combustivel_info %>% dfSummary() %>% print(method = 'render')
+```
+
+# Tipos de gráficos
+
+## Scatter plots
+
+* Vamos analisar o preço médio dos combustíveis do <b>Rio de Janeiro</b> em 2004 e 2021:
+
+```{r scatter-plots}
+anos_2004 %>% 
+  filter(ESTADO == 'RIO DE JANEIRO') %>% 
+  ggplot(aes(x = `PREÇO MÉDIO REVENDA`, y = `DATA INICIAL`, color = PRODUTO)) +
+  geom_point() +
+  labs(
+      title = 'PREÇO MÉDIO EM RELAÇÃO AO MÊS',
+      x = 'PREÇO MÉDIO',
+      y = 'MÊS'
+    ) 
+
+anos_2021 %>% 
+  filter(ESTADO == 'RIO DE JANEIRO') %>% 
+  ggplot(aes(x = `PREÇO MÉDIO REVENDA`, y = `DATA INICIAL`, color = PRODUTO)) +
+  geom_point() +
+  labs(
+      title = 'PREÇO MÉDIO EM RELAÇÃO AO MÊS',
+      x = 'PREÇO MÉDIO',
+      y = 'MÊS'
+    ) 
+```
+
+## Histograma 
+
+* Número de postos pesquisados no Rio de Janeiro
+
+```{r histograma}
+combustivel_info %>%
+  filter(ESTADO == 'RIO DE JANEIRO') %>%
+  ggplot(aes(x = `NÚMERO DE POSTOS PESQUISADOS`)) +
+    geom_histogram() + 
+  scale_x_continuous(breaks = seq(-100, 2000, 2000)) +
+  labs(
+    y = NULL,
+    x = 'POSTOS',
+    title = 'NÚMERO DE POSTOS PESQUISADOS NO RIO DE JANEIRO',
+  )
+```
+
+## Boxplot
+
+* Preço médio dos combustíveis automotivos do Brasil em 2004: 
+
+```{r remove-glp}
+# Removendo as linhas com "GLP" de um Data Frame
+comb_auto_2004 <- anos_2004[!grepl("GLP",anos_2004$PRODUTO),]
+comb_auto_2021 <- anos_2021[!grepl("GLP",anos_2021$PRODUTO),]
+
+#Confirmando que as linhas do combustível GLP foram apagadas
+comb_auto_2004%>%
+  filter(PRODUTO == 'GLP')
+comb_auto_2021%>%
+  filter(PRODUTO == 'GLP')
+```
+```{r preço-médio-rj}
+boxp_2004 <- comb_auto_2004 %>% 
+  ggplot(aes(x = PRODUTO, y = `PREÇO MÉDIO REVENDA`)) +
+  geom_boxplot(fill = 'gray') +
+  scale_y_continuous(breaks = seq(0, 5, 0.25))+
+  labs(
+    title = "PREÇO MÉDIO DOS COMBUSTÍVEIS AUTOMOTIVOS EM 2004",
+    x = NULL,
+    y = NULL
+  ) 
+boxp_2004
+
+boxp_2021 <- comb_auto_2021 %>% 
+  ggplot(aes(x = PRODUTO, y = `PREÇO MÉDIO REVENDA`)) +
+  geom_boxplot(fill = 'gray') +
+  scale_y_continuous(breaks = seq(0, 10, 0.25))+
+  labs(
+    title = "PREÇO MÉDIO DOS COMBUSTÍVEIS AUTOMOTIVOS EM 2021",
+    x = NULL,
+    y = NULL
+  ) 
+
+boxp_2021 +
+  theme(
+    axis.text.x = element_text(
+      angle = 45,
+      vjust = .9,
+      hjust = .9
+    )
+  )
+
+```
+
+## Barra e colunas
+
+* Frequência da análise dos combustíveis em cada região do Brasil.
+
+```{r barra-colunas}
+combustivel_info %>% 
+  ggplot(aes(x = fct_rev(fct_infreq(REGIÃO)), fill = PRODUTO)) +
+    geom_bar(position = 'dodge') +
+    labs(
+      x = NULL,
+      y = NULL
+    ) +
+    scale_y_continuous(breaks = seq(0, 8000, 500))
+```
+
+* Experimentando uma paleta de cores diferente: 
+
+```{r barra-colunas-cores}
+combustivel_info %>% 
+  ggplot(aes(x = fct_rev(fct_infreq(REGIÃO)), fill = PRODUTO)) +
+    geom_bar(position = 'dodge') +
+    labs(
+      x = NULL,
+      y = NULL
+    ) +
+    scale_y_continuous(breaks = seq(0, 8000, 500)) +
+    scale_fill_discrete(
+      type = c('#b7ded2', '#ffbdbd', '#f7c297', '#ffecb8', '#90d2d8', '#e0d6ff', '#3b5998', '#78866b', '#4d5d53')
+    )
+```
+
+## Gráfico de linha
+
+* Número de postos pesquisados em cada região do Brasil (2004-2021):
+
+```{r tibble-postos-info}
+# Criando uma tibble com as colunas ANO, REGIÃO e NÚMERO DE POSTOS
+DATAS <- combustivel_info['DATA INICIAL']
+NUM_POSTOS <- combustivel_info['NÚMERO DE POSTOS PESQUISADOS']
+REG <- combustivel_info['REGIÃO']
+
+for (elem in DATAS)
+{
+  ANO <- year(elem)
+}
+
+postos_info <- tibble(ANO, REG, NUM_POSTOS)
+postos_info
+```
+
+```{r aggregate}
+# Usando a função aggregate para somar, por região, todos os postos pesquisados em cada ano
+postos_info = aggregate(x = postos_info$`NÚMERO DE POSTOS PESQUISADOS`, by = list(postos_info$ANO, postos_info$REGIÃO), FUN = "sum")
+
+postos_info
+```
+```{r rename-colunas-postos-info}
+# Renomeando as colunas 
+colnames(postos_info) <- c("ANO", "REGIÃO", "NÚMERO DE POSTOS")
+postos_info
+```
+
+```{r gráfico-de-linha}
+# Criando o gráfico 
+postos_info %>% 
+  ggplot(aes(x = ANO, y = `NÚMERO DE POSTOS`, color = REGIÃO)) +
+    geom_line() +
+    scale_x_continuous(breaks = 2004:2021) +
+    theme(axis.text.x = element_text(angle = 50))
+    labs(
+      y = "POSTOS PESQUISADOS",
+      x = "ANOS"
+    )
+```
+* <b>9e+05* = 9*10^5 = 900.000
+
+# Bibliografia 
+
+* [R is.na Function Example (remove, replace, count, if else, is not NA)](https://statisticsglobe.com/r-is-na-function/)
+* [Ciência de Dados com R - Manipulando os dados](https://cdr.ibpad.com.br/manipulando-os-dados.html)
+* [Ciência de Dados com R - Trabalhando com datas](http://sillasgonzaga.com/material/cdr/trabalhando-com-datas.html)
+* [Como excluir linhas de DATAFRAME R com base na correspondência de Strings?](https://acervolima.com/como-excluir-linhas-de-dataframe-r-com-base-na-correspondencia-de-string/)
+* [Remova linhas duplicadas por coluna em R](https://www.delftstack.com/pt/howto/r/remove-duplicates-in-r/)
+* [Como alterar o nome de uma coluna?](https://pt.stackoverflow.com/questions/126900/como-alterar-o-nome-de-uma-coluna)
+* [Aggregate in R](https://r-coder.com/aggregate-r/)
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,266 @@
+---
+title: "Inferência Estatística e Regressão Linear"
+author: "👩🏽‍💻 Eduarda Michaelle"
+github: 'https://github.com/EduardaMichaelle'
+date: '(data: `r format(Sys.Date(), "%d/%m/%Y")`)'
+lang: 'pt-br'
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+---
+
+# Download de pacotes e bibliotecas
+
+```{r pacote-fnaufelRmd}
+install.packages("devtools")
+devtools::install_github("fnaufel/fnaufelRmd")
+```
+
+```{r pacotes}
+if (!require('devtools'))
+  install.packages('devtools')
+
+if (!require('fnaufelRmd'))
+  devtools::install_github("fnaufel/fnaufelRmd")
+
+pacotes <- c(
+  'conflicted',
+  'kableExtra',
+  'knitr',
+  'latex2exp',
+  'sessioninfo',
+  'summarytools',
+  'tidyverse'
+)
+
+instalar_se_preciso <- function(x) {
+
+  if (!require(x, character.only = TRUE))
+    install.packages(x)
+
+}
+
+invisible(sapply(pacotes, instalar_se_preciso))
+```
+
+```{r}
+install.packages("binom")
+```
+```{r biblioteca-scales}
+library(scales)
+```
+
+# Moeda
+
+1. [Usando apenas a linha da tabela que corresponde a você]{.hl}, teste a hipótese de que a moeda é justa --- i.e., em um lançamento, a moeda produz cara com probabilidade $p = 0{,}5$. Use $\alpha = 0{,}05$.
+
+<b>Resposta:</b> 
+
+* A linha que corresponde a mim é a da matrícula <b>218060060</b>, com <b>70</b> caras. 
+
+## Condições 
+
+* Vamos verificar as condições para ver se o teste de hipótese também se baseia no TCL: 
+
+1. <b>Idependência:</b> os lançamentos das moedas são independentes entre si? Sim, pois um resultado não depende do outro. 
+2. <b>Amostra aleatória e representativa:</b> a amostra são os 200 lançamentos. A população consiste em todas as moedas lançadas em um dia em questão. Vamos supor que os números de lançamentos de cada dia são compatíveis com os outros. 
+3. <b>Tamanho da amostra:</b> temos mais do que 30 elementos e a amostra é menor do que 10% da população. 
+4. <b> Quantidades de sucessos e fracassos potenciais:</b> considerando cara como sucesso e coroa para fracassos, temos 70 sucessos e 130 fracassos, mais do que os 10 exigidos. 
+
+* As condições foram verificadas 👍
+
+## Valores 
+
+```{r valores}
+n <- 200
+p_chapeu <- 70/200
+p0 <- 0.5
+ep <- sqrt(p0 * (1 - p0) / n)
+```
+
+
+* Tamanho da amostra: $n =200$
+
+* Proporção amostral: $\hat p = 0,35$
+
+* Hipótese de nulidade: $H_0 : p = 0,5$
+
+* Hipótese alternativa: $H_A : p < 0,5$
+
+* Nível de significância: $\alpha = 0,05$ 
+
+## Testando a hipótese 
+
+* Começamos supondo que $H_0$ é verdadeira.
+
+* Pelo TCL e supondo $H_0$, construímos a distribuição amostral, com média $\mu = p = 0,5$ 
+
+$$
+  \sigma_{\hat p} 
+  = \sqrt{\frac{p(1-p)}{n}} 
+  = 0.03535534
+$$
+
+* Agora, usando essa distribuição amostral, vamos calcular a aprobabilidade de obter uma amostra como a que obtivemos ou mais externa: 
+
+```{r valor-p}
+valor_p <- pnorm(p_chapeu, mean = p0, sd = ep, lower.tail = FALSE)
+valor_p
+```
+
+* Chamamos a probabilidade calculada de valor $p$. 
+
+* Como o valor de $p$ foi alto (muito maior que $\alpha = 0,05$), isso indica que, suponto $H_0$, nossa amostra não tem nada de inesperado, e não é evidência contra $H_0$, logo não podemos rejeitá-lo. 
+
+* Conclui-se então, que a moeda é justa 👍
+
+## Teste em R
+
+```{r teste-em-r}
+prop.test(
+  x = p_chapeu * n,          # número de sucessos
+  n = n,                     # tamanho da amostra
+  p = p0,                    # valor de p na hipótese de nulidade
+  alternative = 'less',      # hipótese alternativa é p < p0
+  conf.level = .95,          # 1 - α (o default já é .95)
+  correct = FALSE            # sem correção de continuidade 
+)
+```
+
+## Intervalo de confiança 
+
+* Em uma distribuição normal com média $\mu$ e desvio padrão $\sigma$, sabemos que $95\%$ da probabilidade está entre $\mu - 1{,}96\sigma$ e $\mu + 1{,}96\sigma$.
+
+* Primeiro, vamos calcular o erro padrão:  
+
+$$
+EP = \sqrt{\frac{\hat p(1-\hat p)}{n}}
+$$
+
+```{r erro-padrão-2}
+ep2 <- sqrt(p_chapeu * (1 - p_chapeu) / n)
+ep2
+```
+
+* Para 95%, precisamos usar 1,96 como número de desvio padrão. 
+* Agora, vamos calcular a margem de erro:
+
+```{r}
+margem <- 1.96 * ep2
+margem
+```
+* Por último, calculamos os extremos do intervalo de confiança:
+
+```{r}
+p_chapeu + c(-1,1) * margem
+```
+## Intervalo em R 
+
+* Criando a função $bt$ que terá como retorno uma lista:
+
+```{r}
+bt <- binom.test(70, 200)
+bt
+```
+
+* Gerando o intervalo de confiança:
+
+```{r}
+bt$conf.int
+```
+
+# Lei de Moore pra GPUs
+
+* Usaremos o <i>dataset</i> abaixo: 
+
+```{r}
+gpus <- read_csv2(
+  paste0('https://raw.githubusercontent.com/fnaufel/', 'CursoProbEst/master/Aulas/23-regressao1/data/gpus.csv')
+  ) %>% select(
+    processador = Processor,
+    transistores = 'Transistor count',
+    ano = 'Date of introduction',
+    fabricante = Manufacturer
+  )
+
+gpus
+```
+
+* Vamos utilizar regressão linear para confirmar a lei de Moore para estes dados: 
+
+## Examinando o <i>scatterplot</i>
+
+* Começamos analisando o gráfico da quantidade de transistores por ano: 
+
+```{r}
+gpus %>% 
+  ggplot(aes(ano, transistores)) +
+    geom_point() +
+    scale_y_continuous(
+      labels = label_number(scale = 1e-9, decimal.mark = ',', suffix = 'M')
+    )
+```
+
+* Podemos ver que a relação não é linear, pois a [lei de Moore](https://pt.wikipedia.org/wiki/Lei_de_Moore) estima que, a cada dois anos, o número de transistores em um circuito integrado dobra, i.e., a relação é exponencial. 
+
+* Logo, não poderemos fazer regressão linear com uma variável que varia exponencialmente em relação à outra. 
+
+* A solução para esse problema é usar o logaritmo do número de transistores para criar um novo gráfico: 
+
+```{r}
+gpus <- gpus %>% mutate(ltransistores = log10(transistores))
+```
+
+```{r}
+grafico <- gpus %>% 
+  ggplot(aes(ano, ltransistores)) +
+  geom_point() +
+  labs(
+    y = TeX('log_{10}(transistores)')
+    )
+
+grafico
+```
+
+* Agora temos uma núvem de pontos que parece mostrar uma correlação linear. 
+
+## Construindo o modelo 
+
+```{r}
+modelo <- lm(ltransistores ~ ano, data = gpus)
+```
+
+```{r}
+summary(modelo)
+```
+
+```{r echo=FALSE}
+b0 <- coef(modelo)[1]
+b1 <- coef(modelo)[2]
+```
+
+* A equação é:
+
+$$
+\widehat{\text{log(transistores)}} = -357,1896 + 0,1823379  \cdot \text{ano}
+$$
+
+* A equação diz que, a cada $2$ anos, o logaritmo do número de transistores (na base $10$) aumenta de $0,3646759$.
+
+* Chamando de $t(n)$ o número de transistores no ano $n$, a equação diz que:
+
+$$
+\begin{align*}
+  \log t(n + 2) = \log t(n) + `r 2 * b1` 
+  & \implies
+    t(n + 2) = t(n) \cdot 10^{`r 2 * b1`} 
+  & \text{(elevando }10\text{ a cada lado)} \\
+  & \implies 
+    t(n + 2) = `r (10^(2 * b1)) %>% round(3)` \cdot t(n)
+\end{align*}
+$$
+
+* Analisamos que no ano $n + 2$ a quantidade de transistores é de $2,316$ vezes a quantidade do ano $n$. 
+
+* Isso mostra que a Lei de Moore não se aplica as GPUs com tanta pontualidade 👎 
