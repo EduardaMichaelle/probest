@@ -10,6 +10,6 @@ Repositório para os trabalhos avaliativos da matéria de Probabilidade e Estat�
 
 ##
 
- 📌 Para a resolução dos exercícios eu utilizei o site [Posit Cloud](https://posit.cloud).
+ 📌 A resolução dos exercícios foi feita em linguagem R Markdown, através do site [Posit Cloud](https://posit.cloud).
 
 
